@@ -1,0 +1,6 @@
+[package]
+name = "pipe"
+version = "0.1.0"
+authors = ["Oleg Khryptul <okreptul@yahoo.com>"]
+
+[dependencies]

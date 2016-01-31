@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{78C9907C-C22D-4F8D-B13A-49F213FF1631}") = "pipe", "pipe.rsproj", "{D40CFA90-9CCC-490A-BBD6-BBAFEB30C2AA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|default = Debug|default
+		Release|default = Release|default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D40CFA90-9CCC-490A-BBD6-BBAFEB30C2AA}.Debug|default.ActiveCfg = Debug|default
+		{D40CFA90-9CCC-490A-BBD6-BBAFEB30C2AA}.Debug|default.Build.0 = Debug|default
+		{D40CFA90-9CCC-490A-BBD6-BBAFEB30C2AA}.Release|default.ActiveCfg = Release|default
+		{D40CFA90-9CCC-490A-BBD6-BBAFEB30C2AA}.Release|default.Build.0 = Release|default
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

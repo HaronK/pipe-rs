@@ -1,7 +1,8 @@
 
 use alloc::boxed::Box;
 
-pub type Link<T> = Option<Box<Node<T>>>;
+pub type BoxedNode<T> = Box<Node<T>>;
+pub type Link<T> = Option<BoxedNode<T>>;
 
 pub struct Node<T> {
     pub next: Link<T>,

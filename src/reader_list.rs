@@ -57,14 +57,15 @@ impl<T> ReaderList<T> {
     // pop element from the top of the list
     #[inline]
     pub fn pop_front(&mut self) -> Link<T> {
-        let head = self.get_head();
-        match head {
-            None => None,
-            Some(v) => {
-                self.set_head(v.next);
-                head
+        let mut head = self.get_head();
+        head.take().map(|mut front_node| {
+            self.length -= 1;
+            match front_node.next.take() {
+                Some(node) => self.set_head(Some(node)),
+                None => self.set_head(None),
             }
-        }
+            front_node
+        })
     }
 
     #[inline]

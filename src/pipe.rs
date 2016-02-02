@@ -1,6 +1,7 @@
 
 use std::mem;
 use std::sync::atomic::Ordering;
+use node::BoxedNode;
 use writer_list::WriterList;
 use reader_list::ReaderList;
 
@@ -43,22 +44,20 @@ impl<T> PipeWriter<T> for Pipe<T> {
 
 impl<T> PipeReader<T> for Pipe<T> {
     fn read(&mut self) -> Option<T> {
-        let value = self.reader.pop_front();
-        if value.is_none() {
-            if self.writer_finished && self.writer.head.is_some() {
-                self.reader.set_head(mem::replace(&mut self.writer.head, None));
-                value = self.writer.head;
-                self.writer.head = None;
-            } else {
+        let mut head = self.reader.pop_front();
+        if head.is_none() {
+            if !self.writer_finished {
+                return None;
+            }
+
+            head = mem::replace(&mut self.writer.head, None);
+            if head.is_none() {
                 return None;
             }
         }
-
-        let data = value.unwrap();
-        self.reader.set_head(data.next);
-        // data.next = None;
-
-        Some((*data).value)
+        let node = *head.unwrap();
+        self.reader.set_head(node.next);
+        Some(node.value)
     }
 }
 

@@ -1,0 +1,1 @@
+E:\Projects\rust\rust-libs\pipe\obj\default\Debug\pipe.rsprojResolveAssemblyReference.cache

@@ -26,6 +26,7 @@
     <Code Include="src\lib.rs" />
   </ItemGroup>
   <ItemGroup>
+    <File Include="src\guard.rs" />
     <File Include="src\node.rs" />
     <File Include="src\reader_list.rs" />
     <File Include="src\writer_list.rs" />

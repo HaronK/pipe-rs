@@ -52,7 +52,22 @@ impl<T> Pipe<T> {
 
 impl<T> Drop for Pipe<T> {
     fn drop(&mut self) {
-        // TODO: implement
+        unsafe {
+            // clean writer's subqueue
+            let mut cur = self.writer_head.load(Ordering::Relaxed);
+            while !cur.is_null() {
+                let next = *(*cur).next.get();
+                let _: Box<Node<T>> = Box::from_raw(cur);
+                cur = next;
+            }
+            // clean reader's subqueue
+            cur = self.reader_head.load(Ordering::Relaxed);
+            while !cur.is_null() {
+                let next = *(*cur).next.get();
+                let _: Box<Node<T>> = Box::from_raw(cur);
+                cur = next;
+            }
+        }
     }
 }
 

@@ -109,7 +109,7 @@ impl<T> PipeReader<T> for Pipe<T> {
                     return None;
                 }
             }
-    
+
             self.reader_head.store(*(*head).next.get(), Ordering::Release);
 
             Some((*head).value.take().unwrap())
@@ -119,5 +119,44 @@ impl<T> PipeReader<T> for Pipe<T> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+    use std::thread;
 
+    use super::*;
+
+    #[test]
+    fn test_single_thread() {
+        let mut pipe = Pipe::<u32>::new();
+        pipe.write(2);
+        pipe.write(1);
+        pipe.write(5);
+        assert_eq!(2, pipe.read().unwrap());
+        assert_eq!(1, pipe.read().unwrap());
+        assert_eq!(5, pipe.read().unwrap());
+    }
+
+//    #[test]
+//    fn test_1writer_1reader()
+//    {
+//        const dataCount: u32 = 1000;
+//        let mut pipe = Arc::new(Pipe::<u32>::new());
+//
+//        let mut writer_pipe = pipe.clone();
+//        thread::spawn(move || {
+//            for i in 0..dataCount {
+//                writer_pipe.write(i);
+//            }
+//        });
+//
+//        let mut reader_pipe = pipe.clone();
+//        thread::spawn(move || {
+//            let mut i: u32 = 0;
+//            while i < dataCount {
+//                if let Some(val) = reader_pipe.read() {
+//                    assert_eq!(i, val);
+//                    i += 1;
+//                }
+//            }
+//        });
+//    }
 }

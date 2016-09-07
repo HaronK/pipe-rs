@@ -2,5 +2,16 @@
 name = "pipe"
 version = "0.1.0"
 authors = ["Oleg Khryptul <okreptul@yahoo.com>"]
+repository = "https://github.com/HaronK/rust-libs.git"
+homepage = "https://github.com/HaronK/rust-libs"
+license = "MIT"
+readme = "README.md"
+documentation = "https://github.com/HaronK/rust-libs"
+description = "Thread-safe lock free FIFO queue implemented in Rust."
 
 [dependencies]
+clippy = {version = "0.0.89", optional = true}
+
+[features]
+default = []
+dev = ["clippy"]

@@ -9,14 +9,20 @@ struct Node<T> {
     value: Option<T>,
 }
 
+/// Pipe writer trait
 pub trait PipeWriter<T> {
+    /// Write method
     fn write(&mut self, elt: T);
 }
 
+/// Pipe reader trait
 pub trait PipeReader<T> {
+    /// Read method
     fn read(&mut self) -> Option<T>;
 }
 
+/// Pipe structure
+#[derive(Debug)]
 pub struct Pipe<T> {
     writer_head:     AtomicPtr<Node<T>>,
     writer_tail:     UnsafeCell<*mut Node<T>>,
@@ -25,8 +31,8 @@ pub struct Pipe<T> {
     reader_head:     AtomicPtr<Node<T>>,
 }
 
-unsafe impl<T: Send> Send for Pipe<T> { }
-unsafe impl<T: Send> Sync for Pipe<T> { }
+unsafe impl<T: Send> Send for Pipe<T> {}
+unsafe impl<T: Send> Sync for Pipe<T> {}
 
 impl<T> Node<T> {
     #[inline]
@@ -39,6 +45,7 @@ impl<T> Node<T> {
 }
 
 impl<T> Pipe<T> {
+    /// Constructor
     #[inline]
     pub fn new() -> Pipe<T> {
         Pipe {
@@ -81,8 +88,7 @@ impl<T> PipeWriter<T> for Pipe<T> {
             let mut head = self.writer_head.swap(ptr::null_mut(), Ordering::AcqRel);
             if head.is_null() {
                 head = node;
-            }
-            else {
+            } else {
                 let tail = *self.writer_tail.get();
                 *(*tail).next.get() = node;
             }
@@ -119,9 +125,6 @@ impl<T> PipeReader<T> for Pipe<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-    use std::thread;
-
     use super::*;
 
     #[test]
@@ -135,28 +138,30 @@ mod tests {
         assert_eq!(5, pipe.read().unwrap());
     }
 
-//    #[test]
-//    fn test_1writer_1reader()
-//    {
-//        const dataCount: u32 = 1000;
-//        let mut pipe = Arc::new(Pipe::<u32>::new());
-//
-//        let mut writer_pipe = pipe.clone();
-//        thread::spawn(move || {
-//            for i in 0..dataCount {
-//                writer_pipe.write(i);
-//            }
-//        });
-//
-//        let mut reader_pipe = pipe.clone();
-//        thread::spawn(move || {
-//            let mut i: u32 = 0;
-//            while i < dataCount {
-//                if let Some(val) = reader_pipe.read() {
-//                    assert_eq!(i, val);
-//                    i += 1;
-//                }
-//            }
-//        });
-//    }
+    use std::sync::Arc;
+    use std::thread;
+
+    #[test]
+    fn test_1writer_1reader() {
+        const dataCount: u32 = 1000;
+        let mut pipe = Arc::new(Pipe::<u32>::new());
+
+        let mut writer_pipe = pipe.clone();
+        thread::spawn(move || {
+            for i in 0..dataCount {
+                writer_pipe.write(i);
+            }
+        });
+
+        let mut reader_pipe = pipe.clone();
+        thread::spawn(move || {
+            let mut i: u32 = 0;
+            while i < dataCount {
+                if let Some(val) = reader_pipe.read() {
+                    assert_eq!(i, val);
+                    i += 1;
+                }
+            }
+        });
+    }
 }

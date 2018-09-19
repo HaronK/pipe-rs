@@ -1,34 +1,39 @@
-
-use core::ptr;
 use core::cell::UnsafeCell;
+use core::ptr;
 
 use std::sync::atomic::{AtomicPtr, Ordering};
 
 struct Node<T> {
-    next:  UnsafeCell<*mut Node<T>>,
+    next: UnsafeCell<*mut Node<T>>,
     value: Option<T>,
 }
 
 /// Pipe writer trait
 pub trait PipeWriter<T> {
     /// Write method
-    fn write(&mut self, elt: T);
+    fn write(&self, elt: T);
 }
 
 /// Pipe reader trait
 pub trait PipeReader<T> {
     /// Read method
-    fn read(&mut self) -> Option<T>;
+    fn read(&self) -> Option<T>;
 }
 
 /// Pipe structure
 #[derive(Debug)]
 pub struct Pipe<T> {
-    writer_head:     AtomicPtr<Node<T>>,
-    writer_tail:     UnsafeCell<*mut Node<T>>,
+    writer_head: AtomicPtr<Node<T>>,
+    writer_tail: UnsafeCell<*mut Node<T>>,
     writer_finished: bool,
 
-    reader_head:     AtomicPtr<Node<T>>,
+    reader_head: AtomicPtr<Node<T>>,
+}
+
+impl<T> Default for Pipe<T> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 unsafe impl<T: Send> Send for Pipe<T> {}
@@ -38,7 +43,7 @@ impl<T> Node<T> {
     #[inline]
     unsafe fn new(v: T) -> *mut Node<T> {
         Box::into_raw(Box::new(Node {
-            next:  UnsafeCell::new(ptr::null_mut()),
+            next: UnsafeCell::new(ptr::null_mut()),
             value: Some(v),
         }))
     }
@@ -49,10 +54,10 @@ impl<T> Pipe<T> {
     #[inline]
     pub fn new() -> Pipe<T> {
         Pipe {
-            writer_head:     AtomicPtr::new(ptr::null_mut()),
-            writer_tail:     UnsafeCell::new(ptr::null_mut()),
+            writer_head: AtomicPtr::new(ptr::null_mut()),
+            writer_tail: UnsafeCell::new(ptr::null_mut()),
             writer_finished: false,
-            reader_head:     AtomicPtr::new(ptr::null_mut()),
+            reader_head: AtomicPtr::new(ptr::null_mut()),
         }
     }
 }
@@ -79,7 +84,7 @@ impl<T> Drop for Pipe<T> {
 }
 
 impl<T> PipeWriter<T> for Pipe<T> {
-    fn write(&mut self, elt: T) {
+    fn write(&self, elt: T) {
         assert!(!self.writer_finished);
 
         unsafe {
@@ -106,7 +111,7 @@ impl<T> PipeWriter<T> for Pipe<T> {
 }
 
 impl<T> PipeReader<T> for Pipe<T> {
-    fn read(&mut self) -> Option<T> {
+    fn read(&self) -> Option<T> {
         unsafe {
             let mut head = self.reader_head.load(Ordering::Acquire);
             if head.is_null() {
@@ -116,7 +121,8 @@ impl<T> PipeReader<T> for Pipe<T> {
                 }
             }
 
-            self.reader_head.store(*(*head).next.get(), Ordering::Release);
+            self.reader_head
+                .store(*(*head).next.get(), Ordering::Release);
 
             Some((*head).value.take().unwrap())
         }
@@ -129,7 +135,7 @@ mod tests {
 
     #[test]
     fn test_single_thread() {
-        let mut pipe = Pipe::<u32>::new();
+        let pipe = Pipe::<u32>::new();
         pipe.write(2);
         pipe.write(1);
         pipe.write(5);
@@ -143,20 +149,20 @@ mod tests {
 
     #[test]
     fn test_1writer_1reader() {
-        const dataCount: u32 = 1000;
-        let mut pipe = Arc::new(Pipe::<u32>::new());
+        const DATA_COUNT: u32 = 1000;
+        let pipe = Arc::new(Pipe::<u32>::new());
 
-        let mut writer_pipe = pipe.clone();
+        let writer_pipe = pipe.clone();
         thread::spawn(move || {
-            for i in 0..dataCount {
+            for i in 0..DATA_COUNT {
                 writer_pipe.write(i);
             }
         });
 
-        let mut reader_pipe = pipe.clone();
+        let reader_pipe = pipe.clone();
         thread::spawn(move || {
             let mut i: u32 = 0;
-            while i < dataCount {
+            while i < DATA_COUNT {
                 if let Some(val) = reader_pipe.read() {
                     assert_eq!(i, val);
                     i += 1;

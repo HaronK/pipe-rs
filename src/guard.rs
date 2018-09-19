@@ -1,4 +1,3 @@
-﻿
 //use std::sync::Mutex;
 //
 //pub struct Guard<T: Drop> {

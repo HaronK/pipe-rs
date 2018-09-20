@@ -41,7 +41,7 @@ unsafe impl<T: Send> Sync for Pipe<T> {}
 
 impl<T> Node<T> {
     #[inline]
-    unsafe fn new(v: T) -> *mut Node<T> {
+    fn new(v: T) -> *mut Node<T> {
         Box::into_raw(Box::new(Node {
             next: UnsafeCell::new(ptr::null_mut()),
             value: Some(v),
@@ -64,17 +64,22 @@ impl<T> Pipe<T> {
 
 impl<T> Drop for Pipe<T> {
     fn drop(&mut self) {
-        unsafe {
-            // clean writer's subqueue
-            let mut cur = self.writer_head.load(Ordering::Relaxed);
-            while !cur.is_null() {
+        // clean writer's subqueue
+        let mut cur = self.writer_head.load(Ordering::Relaxed);
+
+        while !cur.is_null() {
+            unsafe {
                 let next = *(*cur).next.get();
                 let _: Box<Node<T>> = Box::from_raw(cur);
                 cur = next;
             }
-            // clean reader's subqueue
-            cur = self.reader_head.load(Ordering::Relaxed);
-            while !cur.is_null() {
+        }
+
+        // clean reader's subqueue
+        cur = self.reader_head.load(Ordering::Relaxed);
+
+        while !cur.is_null() {
+            unsafe {
                 let next = *(*cur).next.get();
                 let _: Box<Node<T>> = Box::from_raw(cur);
                 cur = next;
@@ -87,40 +92,40 @@ impl<T> PipeWriter<T> for Pipe<T> {
     fn write(&self, elt: T) {
         assert!(!self.writer_finished);
 
-        unsafe {
-            let node = Node::new(elt);
+        let node = Node::new(elt);
+        let mut head = self.writer_head.swap(ptr::null_mut(), Ordering::AcqRel);
 
-            let mut head = self.writer_head.swap(ptr::null_mut(), Ordering::AcqRel);
-            if head.is_null() {
-                head = node;
-            } else {
+        if head.is_null() {
+            head = node;
+        } else {
+            unsafe {
                 let tail = *self.writer_tail.get();
                 *(*tail).next.get() = node;
             }
-            *self.writer_tail.get() = node;
-
-            let reader_head = self.reader_head.load(Ordering::Acquire);
-            if reader_head.is_null() {
-                self.reader_head.store(head, Ordering::Release);
-                return;
-            }
-
-            self.writer_head.store(head, Ordering::Release);
         }
+        unsafe { *self.writer_tail.get() = node; }
+
+        let reader_head = self.reader_head.load(Ordering::Acquire);
+        if reader_head.is_null() {
+            self.reader_head.store(head, Ordering::Release);
+            return;
+        }
+
+        self.writer_head.store(head, Ordering::Release);
     }
 }
 
 impl<T> PipeReader<T> for Pipe<T> {
     fn read(&self) -> Option<T> {
-        unsafe {
-            let mut head = self.reader_head.load(Ordering::Acquire);
+        let mut head = self.reader_head.load(Ordering::Acquire);
+        if head.is_null() {
+            head = self.writer_head.swap(ptr::null_mut(), Ordering::AcqRel);
             if head.is_null() {
-                head = self.writer_head.swap(ptr::null_mut(), Ordering::AcqRel);
-                if head.is_null() {
-                    return None;
-                }
+                return None;
             }
+        }
 
+        unsafe {
             self.reader_head
                 .store(*(*head).next.get(), Ordering::Release);
 

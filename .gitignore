@@ -1,6 +1,3 @@
 target
 Cargo.lock
 obj
-pipe.v12.suo
-**/*.rs.bk
-.vs
